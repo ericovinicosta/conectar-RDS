@@ -17,6 +17,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.SelectionMode;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 
 /**
  *
@@ -24,6 +25,7 @@ import javax.swing.table.DefaultTableModel;
  */
 public class JanelaApp extends javax.swing.JFrame {
 
+    private static boolean ehsalvar = true;
     /**
      * Creates new form JanelaApp
      * @param title
@@ -31,8 +33,7 @@ public class JanelaApp extends javax.swing.JFrame {
     public JanelaApp(String title) {
         setTitle(title);
 //      tListaMsg.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
-        initComponents();
-        carregaTabelaDados(); 
+        initComponents(); 
         setSize(800,400);
     }
 
@@ -59,6 +60,11 @@ public class JanelaApp extends javax.swing.JFrame {
         setName("tela"); // NOI18N
         setPreferredSize(new java.awt.Dimension(800, 600));
         setResizable(false);
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowOpened(java.awt.event.WindowEvent evt) {
+                formWindowOpened(evt);
+            }
+        });
 
         tListaMsg.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
@@ -84,6 +90,11 @@ public class JanelaApp extends javax.swing.JFrame {
                 return canEdit [columnIndex];
             }
         });
+        tListaMsg.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                tListaMsgMouseClicked(evt);
+            }
+        });
         jScrollPane1.setViewportView(tListaMsg);
 
         jLabel1.setLabelFor(tMensagem);
@@ -106,6 +117,11 @@ public class JanelaApp extends javax.swing.JFrame {
 
         btnCancelar.setText("Cancelar");
         btnCancelar.setEnabled(false);
+        btnCancelar.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                btnCancelarMouseClicked(evt);
+            }
+        });
 
         btnApagar.setText("Apagar");
         btnApagar.setEnabled(false);
@@ -123,18 +139,20 @@ public class JanelaApp extends javax.swing.JFrame {
                 .addGap(164, 164, 164)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createSequentialGroup()
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 12, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(jLabel1)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 364, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(layout.createSequentialGroup()
                         .addComponent(btnSalvar)
                         .addGap(18, 18, 18)
                         .addComponent(btnCancelar)
                         .addGap(18, 18, 18)
-                        .addComponent(btnApagar)))
-                .addContainerGap(177, Short.MAX_VALUE))
+                        .addComponent(btnApagar))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(12, 12, 12)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(jLabel1)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 364, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 530, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                .addContainerGap(91, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -161,11 +179,29 @@ public class JanelaApp extends javax.swing.JFrame {
         Crud_Repositorio<Dado> crud_Dados = new BancoJdbc();
         Dado dadoMensagem = new Dado();
         dadoMensagem.setMensagem(tMensagem.getText());
-        try{
-            crud_Dados.Incluir(dadoMensagem);
-            carregaTabelaDados();
-        } catch (IOException | SQLException ex) {
-            JOptionPane.showMessageDialog(null, ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE, null);
+        if(ehsalvar){
+            try{
+                crud_Dados.Incluir(dadoMensagem);
+                tMensagem.setText("");
+                carregaTabelaDados();
+            } catch (IOException | SQLException ex) {
+                JOptionPane.showMessageDialog(null, ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE, null);
+            }
+        }else{
+            try{
+                int idMsg = Integer.parseInt( tListaMsg.getValueAt(tListaMsg.getSelectedRow(),0).toString());
+                dadoMensagem.setId(idMsg);
+                crud_Dados.Alterar(dadoMensagem);
+                btnSalvar.setText("Salvar");
+                tMensagem.setText("");
+                btnCancelar.setEnabled(ehsalvar);
+                btnApagar.setEnabled(ehsalvar);
+                carregaTabelaDados();
+                ehsalvar = true;
+            }
+            catch (Exception ex){
+                JOptionPane.showMessageDialog(null, ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE, null);                
+            }
         }
     }//GEN-LAST:event_btnSalvarMouseClicked
 
@@ -175,11 +211,47 @@ public class JanelaApp extends javax.swing.JFrame {
         Dado dadoMensagem = new  Dado();
 //       contatoselecionado = tListaMsg.getSelectedRow()
         try {
+                int idMsg = Integer.parseInt( tListaMsg.getValueAt(tListaMsg.getSelectedRow(),0).toString());
+                dadoMensagem.setId(idMsg);
+                btnCancelar.setEnabled(ehsalvar);
+                btnApagar.setEnabled(ehsalvar);
+                btnSalvar.setText("Salvar");
+                tMensagem.setText("");
                 crud_Dados.Excluir(dadoMensagem);
+                carregaTabelaDados();
+                ehsalvar = true;            
         } catch (Exception ex) {
                 JOptionPane.showMessageDialog(null, ex.getMessage(),"Erro",JOptionPane.ERROR_MESSAGE, null);
         }
     }//GEN-LAST:event_btnApagarMouseClicked
+
+    private void formWindowOpened(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowOpened
+        // TODO add your handling code here:
+        
+                carregaTabelaDados();
+        
+    }//GEN-LAST:event_formWindowOpened
+
+    private void tListaMsgMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tListaMsgMouseClicked
+        // TODO add your handling code here:
+        int linha =  tListaMsg.getSelectedRow();
+        tMensagem.setText(tListaMsg.getValueAt(linha, 1).toString());
+        btnSalvar.setText("Alterar");
+        btnCancelar.setEnabled(ehsalvar);
+        btnApagar.setEnabled(ehsalvar);
+        ehsalvar = false;
+  
+    }//GEN-LAST:event_tListaMsgMouseClicked
+
+    private void btnCancelarMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCancelarMouseClicked
+        // TODO add your handling code here:
+        btnSalvar.setText("Salvar");
+        tMensagem.setText("");
+        carregaTabelaDados();
+        btnCancelar.setEnabled(ehsalvar);
+        btnApagar.setEnabled(ehsalvar);
+        ehsalvar = true;
+    }//GEN-LAST:event_btnCancelarMouseClicked
 
     /**
      * @param args the command line arguments
@@ -233,7 +305,8 @@ public class JanelaApp extends javax.swing.JFrame {
     private void carregaTabelaDados() {
             Crud_Repositorio<Dado> selecionaDados = new BancoJdbc();
 //            List<Dado> listaMensagens;
-                        
+            
+            tListaMsg.getColumnModel().getColumn(0).setPreferredWidth(5);
             try{
                 DefaultTableModel listaMensagens = (DefaultTableModel) tListaMsg.getModel();
                 listaMensagens.setNumRows(0);
@@ -244,9 +317,13 @@ public class JanelaApp extends javax.swing.JFrame {
                         lm.getMensagem()
                     });
                 }
+//                TableRowSorter sorter = new TableRowSorter(listaMensagens);
+//                tListaMsg.setRowSorter(sorter);
+//                sorter.toggleSortOrder(0);
             }
             catch(Exception ex ){
                     JOptionPane.showMessageDialog(null,"Erro ao carregar os dados"+ex,"ERRO",JOptionPane.ERROR_MESSAGE);
+                    btnSalvar.setEnabled(false);
             }
     }
 }
